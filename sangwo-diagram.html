@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三我关系图</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;400;700;900&family=Ma+Shan+Zheng&display=swap');
+
+  :root {
+    --ink-dark: #1a1a2e;
+    --ink-mid: #3d3d5c;
+    --ink-light: #e8e4df;
+    --benwo: #c0392b;
+    --zhiwo: #2c6e8a;
+    --wuwo: #7d5ba6;
+    --paper: #f5f0e8;
+    --gold: #b8860b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper);
+    font-family: 'Noto Serif SC', serif;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* 纸张纹理 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(44,110,138,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 30%, rgba(125,91,166,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(192,57,43,0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .title-area {
+    text-align: center;
+    animation: fadeDown 1.2s ease-out;
+  }
+
+  .title-area h1 {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    color: var(--ink-dark);
+    letter-spacing: 0.3em;
+    margin-bottom: 0.5rem;
+  }
+
+  .title-area .subtitle {
+    font-size: 0.85rem;
+    color: var(--ink-mid);
+    font-weight: 200;
+    letter-spacing: 0.15em;
+  }
+
+  .diagram-wrapper {
+    position: relative;
+    width: min(90vw, 700px);
+    height: min(70vh, 550px);
+    animation: fadeIn 1.5s ease-out 0.3s both;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 圆圈样式 */
+  .circle-zhiwo {
+    fill: rgba(44,110,138,0.08);
+    stroke: var(--zhiwo);
+    stroke-width: 2;
+    stroke-dasharray: 8 4;
+    animation: drawCircle 2s ease-out forwards;
+  }
+
+  .circle-benwo {
+    fill: rgba(192,57,43,0.1);
+    stroke: var(--benwo);
+    stroke-width: 2;
+    animation: drawCircle 2s ease-out 0.5s both;
+  }
+
+  .circle-wuwo {
+    fill: rgba(125,91,166,0.08);
+    stroke: var(--wuwo);
+    stroke-width: 2;
+    stroke-dasharray: 8 4;
+    animation: drawCircle 2s ease-out 0.8s both;
+  }
+
+  /* 重叠区域 */
+  .overlap-zone {
+    animation: fadeIn 1s ease-out 2s both;
+  }
+
+  /* 标签 */
+  .label {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 28px;
+    pointer-events: none;
+  }
+
+  .label-zhiwo {
+    fill: var(--zhiwo);
+    font-size: 32px;
+  }
+
+  .label-benwo {
+    fill: var(--benwo);
+  }
+
+  .label-wuwo {
+    fill: var(--wuwo);
+    font-size: 32px;
+  }
+
+  .label-overlap {
+    font-size: 14px;
+    fill: var(--ink-mid);
+    font-family: 'Noto Serif SC', serif;
+    font-weight: 200;
+  }
+
+  /* 关系线 */
+  .relation-line {
+    stroke-width: 1;
+    fill: none;
+    opacity: 0.6;
+  }
+
+  .relation-text {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 12px;
+    fill: var(--ink-mid);
+    font-weight: 400;
+  }
+
+  /* 图例 */
+  .legend {
+    display: flex;
+    gap: 2.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeUp 1s ease-out 1.5s both;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+    color: var(--ink-mid);
+    letter-spacing: 0.05em;
+  }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-dot.zhiwo { background: var(--zhiwo); }
+  .legend-dot.benwo { background: var(--benwo); }
+  .legend-dot.wuwo { background: var(--wuwo); }
+
+  .legend-desc {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 2px;
+  }
+
+  /* 底部说明 */
+  .note {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #aaa;
+    font-weight: 200;
+    letter-spacing: 0.1em;
+    max-width: 500px;
+    line-height: 1.8;
+    animation: fadeUp 1s ease-out 2s both;
+  }
+
+  @keyframes drawCircle {
+    from { stroke-dashoffset: 1000; stroke-dasharray: 1000; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  .circle-zhiwo { animation: drawCircleDash 2.5s ease-out forwards; }
+  .circle-benwo { animation: drawCircleDash 2s ease-out 0.5s both; }
+  .circle-wuwo { animation: drawCircleDash 2.5s ease-out 0.8s both; }
+
+  @keyframes drawCircleDash {
+    from { stroke-dashoffset: 2000; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 交互悬停 */
+  .hover-zone {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+  }
+
+  .hover-zone:hover {
+    opacity: 1;
+  }
+
+  .hover-zone:hover + .hover-label {
+    opacity: 1;
+  }
+
+  .hover-label {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  /* 脉冲动画 */
+  .pulse-ring {
+    fill: none;
+    stroke-width: 1;
+    opacity: 0;
+    animation: pulse 3s ease-out infinite;
+  }
+
+  .pulse-ring.zhiwo { stroke: var(--zhiwo); animation-delay: 0s; }
+  .pulse-ring.benwo { stroke: var(--benwo); animation-delay: 1s; }
+  .pulse-ring.wuwo { stroke: var(--wuwo); animation-delay: 2s; }
+
+  @keyframes pulse {
+    0% { opacity: 0.4; transform-origin: center; }
+    100% { opacity: 0; transform-origin: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="title-area">
+    <h1>三我关系</h1>
+    <div class="subtitle">本我 · 知我 · 无我</div>
+  </div>
+
+  <div class="diagram-wrapper">
+    <svg viewBox="0 0 700 550" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- 知我渐变 -->
+        <radialGradient id="grad-zhiwo" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(44,110,138,0.12)" />
+          <stop offset="100%" stop-color="rgba(44,110,138,0.03)" />
+        </radialGradient>
+        <!-- 本我渐变 -->
+        <radialGradient id="grad-benwo" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(192,57,43,0.15)" />
+          <stop offset="100%" stop-color="rgba(192,57,43,0.05)" />
+        </radialGradient>
+        <!-- 无我渐变 -->
+        <radialGradient id="grad-wuwo" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(125,91,166,0.12)" />
+          <stop offset="100%" stop-color="rgba(125,91,166,0.03)" />
+        </radialGradient>
+        <!-- 交叉区域渐变 -->
+        <radialGradient id="grad-overlap" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="rgba(80,90,140,0.2)" />
+          <stop offset="100%" stop-color="rgba(80,90,140,0.05)" />
+        </radialGradient>
+        <!-- 滤镜 -->
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      <!-- 知我 (大圆，中心偏左) -->
+      <circle class="circle-zhiwo" cx="280" cy="275" r="200" fill="url(#grad-zhiwo)" />
+      <!-- 知我脉冲 -->
+      <circle class="pulse-ring zhiwo" cx="280" cy="275" r="200" />
+
+      <!-- 本我 (小圆，完全在知我内) -->
+      <circle class="circle-benwo" cx="230" cy="310" r="80" fill="url(#grad-benwo)" />
+      <!-- 本我脉冲 -->
+      <circle class="pulse-ring benwo" cx="230" cy="310" r="80" />
+
+      <!-- 无我 (大圆，中心偏右，与知我部分重叠但不与本我重叠) -->
+      <circle class="circle-wuwo" cx="460" cy="260" r="170" fill="url(#grad-wuwo)" />
+      <!-- 无我脉冲 -->
+      <circle class="pulse-ring wuwo" cx="460" cy="260" r="170" />
+
+      <!-- 知我 ∩ 无我 交叉区域高亮 -->
+      <clipPath id="clip-zhiwo">
+        <circle cx="280" cy="275" r="200" />
+      </clipPath>
+      <circle class="overlap-zone" cx="460" cy="260" r="170"
+        fill="url(#grad-overlap)" clip-path="url(#clip-zhiwo)" />
+
+      <!-- 标签：知我 -->
+      <text class="label label-zhiwo" x="170" y="140" text-anchor="middle">知我</text>
+      <text class="label-overlap" x="170" y="162" text-anchor="middle">Self-Awareness</text>
+
+      <!-- 标签：本我 -->
+      <text class="label label-benwo" x="230" y="318" text-anchor="middle">本我</text>
+      <text class="label-overlap" x="230" y="338" text-anchor="middle">Id</text>
+
+      <!-- 标签：无我 -->
+      <text class="label label-wuwo" x="530" y="170" text-anchor="middle">无我</text>
+      <text class="label-overlap" x="530" y="192" text-anchor="middle">No-Self</text>
+
+      <!-- 交叉区域标签 -->
+      <text class="label-overlap" x="380" y="268" text-anchor="middle" font-size="13" fill="#555">
+        知我 ∩ 无我
+      </text>
+      <text class="label-overlap" x="380" y="288" text-anchor="middle" font-size="11" fill="#888">
+        觉知之境
+      </text>
+
+      <!-- 关系标注箭头：知我 → 本我 -->
+      <line x1="195" y1="220" x2="215" y2="248" class="relation-line" stroke="var(--benwo)" marker-end="url(#arrow-benwo)" />
+      <text x="155" y="238" class="relation-text" fill="var(--benwo)">包含</text>
+
+      <!-- 关系标注：知我 ↔ 无我 -->
+      <line x1="340" y1="240" x2="370" y2="240" class="relation-line" stroke="var(--ink-mid)" stroke-dasharray="3 3" />
+      <text x="338" y="228" class="relation-text" fill="var(--ink-mid)">部分包含</text>
+
+      <!-- 关系标注：无我 ✕ 本我 -->
+      <line x1="400" y1="340" x2="290" y2="340" class="relation-line" stroke="#bbb" stroke-dasharray="2 4" />
+      <text x="345" y="358" class="relation-text" fill="#bbb">不包含</text>
+
+      <!-- 装饰性墨点 -->
+      <circle cx="120" cy="420" r="3" fill="var(--ink-dark)" opacity="0.1" />
+      <circle cx="580" cy="130" r="2" fill="var(--ink-dark)" opacity="0.08" />
+      <circle cx="600" cy="400" r="4" fill="var(--ink-dark)" opacity="0.06" />
+      <circle cx="100" cy="150" r="2.5" fill="var(--ink-dark)" opacity="0.07" />
+
+      <!-- 箭头标记 -->
+      <defs>
+        <marker id="arrow-benwo" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6" fill="var(--benwo)" opacity="0.6" />
+        </marker>
+      </defs>
+    </svg>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot zhiwo"></div>
+      <div>
+        <div>知我</div>
+        <div class="legend-desc">包含本我，部分包含无我</div>
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot benwo"></div>
+      <div>
+        <div>本我</div>
+        <div class="legend-desc">被知我完全包含</div>
+      </div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot wuwo"></div>
+      <div>
+        <div>无我</div>
+        <div class="legend-desc">部分包含知我，不包含本我</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    知我如镜，映照本我之欲，亦映无我之空。<br>
+    无我超脱本我，却与知我部分交融——觉知之境，即二者交汇处。
+  </div>
+</div>
+
+</body>
+</html>
